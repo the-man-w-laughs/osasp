@@ -1,6 +1,6 @@
 if [ $# -ne 2 ] ; then
-	echo "Wrong number of parameters!"
-	echo "(infile) (outfile)"
+	echo "Wrong number of parameters!" > &2
+	echo "Command format: (infile) (outfile)" > &2
 else
 gcc "$1" -o "$2"
 if [ $? -eq 0 ] ; then 
