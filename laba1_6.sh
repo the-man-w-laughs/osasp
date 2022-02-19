@@ -1,5 +1,5 @@
 if [ $# -eq 4 ] ; then 
-	find $1 -type f -size +$2c -size -$3c -printf "%h, %f, %s\n" >$4
+	find $1 -type f -size +$2c -size -$3c -exec pwd \; -printf "%f, %s\n" >$4
 	printf "Number of viewed files: " ; find $1 -type f | wc -l
 else
 	echo "Wrong number of parameters!
