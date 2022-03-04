@@ -1,0 +1,16 @@
+
+Files
+Path: ./b.txt- ./a.txt
+Size: 333b - 333b
+Create time: Fri Mar  4 01:02:15 2022
+ - Fri Mar  4 01:02:15 2022
+Mode: 100644 - 100644
+Ind desc: 524973 - 524853
+
+Files
+Path: ./a.txt- ./b.txt
+Size: 333b - 333b
+Create time: Fri Mar  4 00:56:08 2022
+ - Fri Mar  4 00:56:08 2022
+Mode: 100644 - 100644
+Ind desc: 524853 - 524973
