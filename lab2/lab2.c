@@ -1,184 +1,181 @@
 #include <stdio.h>
+#include <sys/stat.h>
+#include <string.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <stdlib.h>
-#include <sys/stat.h>
-#include <string.h>
+
 #include <time.h>
 
-struct FILERES {
+struct FileStuff {
     struct dirent *info;
-    char *fileDir;
+    char *fullName; 
 };
 
 struct List {
-    struct FILERES *file;
+    struct FileStuff *fileInfo; 
     struct List *next;
 };
 
-void findFile(char *dirSource, char *dirSearch, FILE *pFile);
-char* getFilepath (char* dirname, struct dirent *dir);
-struct List *findEqualFile(char *fileDir, struct dirent *mainFile, char *dirToFind);
-int CompareFiles(const char *fn1, const char *fn2);
+int findSame(char *dir1, char *dir2, FILE *file);
+char* getFullPath(char* dirname, struct dirent *dir);
+int fileCompare(const char *fn1, const char *fn2);
+struct List *getSameFiles(char *dirName, struct dirent *fileToFind, char *dirToSearch);
+void add(struct List **head, struct FileStuff *data);
+
 
 int main(int argc, char *argv[]) {
-
-// arguments err
-    if (argc != 4)
-    {
-        fprintf(stderr,"!Error!\n");
-        fprintf(stderr,"First argument - dir 1\n");
-        fprintf(stderr,"Second - dir 2\n");
-        fprintf(stderr,"Third - file to write result\n");
+    if (argc != 4) {
+        
+        fprintf(stderr,"error! wrong parameters:\n1- first dirName \n2 - second dirName \n3 - result file\n");
+        return 1;
     }
 
-
-// destfile
     int fDest = open(argv[3], O_WRONLY | O_CREAT, 0644);
-    if (fDest < 0)
-    {
-        fprintf(stderr,"Could not open the file\n");
-        return 0;
+    if (fDest == -1) {
+        
+        fprintf(stderr,"error! could not open the file\n");
+        
+        return 1;
     }
 
     FILE *file= fdopen(fDest, "w");
 
-// dirnames
-    char *dirName1, *dirName2;
+    char *dir1, *dir2;
 
-    dirName1 = argv[1];
-    dirName2 = argv[2];
-    
-// main function
-    findFile(dirName1, dirName2, file);
+    dir1 = argv[1];
+    dir2 = argv[2];
+
+    if (findSame(dir1, dir2, file) != 0) {
+        fprintf(stderr,"error! something went wrong while searching n");  
+    }
 
 
-//close err
-    if ((fclose(file) != 0))
-        fprintf(stderr,"Could not close the file\n");
+    if (fclose(file) != 0) {
+        
+        fprintf(stderr,"error! could not close the file\n");
+    }
 
     return 0;
 }
 
-// dirSource, dirSearch - directories to find, pFile - dstfile
-void findFile(char *dirSource, char *dirSearch, FILE *pFile) {
+int findSame(char *dir1, char *dir2, FILE *file){
 
-    //Info about files
+
     struct stat *fileStat1 = (struct stat *)calloc(1, sizeof(struct stat));
     struct stat *fileStat2 = (struct stat *)calloc(1, sizeof(struct stat));
 
-    DIR *dirStream;
-    if ((dirStream = opendir(dirSource)) == NULL)
-    {
-        fprintf(stderr,"Can not open the dir\n");
-        return;
+    DIR *dirStream = opendir(dir1);
+    if (dirStream == NULL) {
+        
+        fprintf(stderr,"error! could not open the dirName\n");
+        return 1;
     }
 
-    //file handler
-    struct dirent *curDir;
     
-    //read each file from dir
-    while ((curDir = readdir(dirStream)) != NULL) {
-        //if is file -> find the same in dirSearch, else open new dir
-        if  (curDir->d_type != DT_DIR)
-        {
-            struct List *equalFiles = findEqualFile(dirSource, curDir, dirSearch);
+    struct dirent *curFile;
+    
+    while ((curFile = readdir(dirStream)) != NULL) {
+        
+        if  (curFile->d_type != DT_DIR) {
+            struct List *equalFiles = getSameFiles(dir1, curFile, dir2);
 
-            //get full info about two files
             if (equalFiles != NULL) {
-                char *dirNewPath = getFilepath(dirSource, curDir);
+                char *fullName1 = getFullPath(dir1, curFile);
 
                 struct List *curEl = equalFiles;
-                while (curEl != NULL)
-                {
-                    stat(dirNewPath, fileStat1);
-                    stat(curEl->file->fileDir, fileStat2);
+                while (curEl != NULL) {
+                    stat(fullName1, fileStat1);
+                    stat(curEl->fileInfo->fullName, fileStat2);
 
-                    printf("\nFiles\n");
-                    printf("Path: %s - %s\n", dirNewPath, curEl->file->fileDir);
-                    printf("Size: %lldb - %lldb\n", fileStat1->st_size, fileStat2->st_size);
-                    printf("Create time: %s - %s", ctime(&fileStat1->st_ctim), ctime(&fileStat2->st_ctim));
-                    printf("Mode: %lo - %lo\n",  (unsigned long)fileStat1->st_mode, (unsigned long)fileStat2->st_mode);
-                    printf("Ind desc: %ld - %ld\n", fileStat1->st_ino, fileStat2->st_ino);
+                    printf("\npath: %s - %s\n", fullName1, curEl->fileInfo->fullName);
+                    fprintf(file, "\npath: %s- %s\n", fullName1, curEl->fileInfo->fullName);
 
-                    fprintf(pFile, "\nFiles\n");
-                    fprintf(pFile, "Path: %s- %s\n", dirNewPath, curEl->file->fileDir);
-                    fprintf(pFile, "Size: %lldb - %lldb\n", fileStat1->st_size, fileStat2->st_size);
-                    fprintf(pFile, "Create time: %s - %s", ctime(&fileStat1->st_ctim), ctime(&fileStat2->st_ctim));
-                    fprintf(pFile, "Mode: %lo - %lo\n",  (unsigned long)fileStat1->st_mode, (unsigned long)fileStat2->st_mode);
-                    fprintf(pFile, "Ind desc: %ld - %ld\n", fileStat1->st_ino, fileStat2->st_ino);
+                    printf("inode number: %ld - %ld\n", fileStat1->st_ino, fileStat2->st_ino);
+                    fprintf(file, "inode number: %ld - %ld\n", fileStat1->st_ino, fileStat2->st_ino);
 
+                    printf("file type and mode: %lo - %lo\n",  (unsigned long)fileStat1->st_mode, (unsigned long)fileStat2->st_mode);
+                    fprintf(file, "file type and mode: %lo - %lo\n",  (unsigned long)fileStat1->st_mode, (unsigned long)fileStat2->st_mode);
+                                      
+                    printf("size: %ldb - %ldb\n", fileStat1->st_size, fileStat2->st_size);
+                    fprintf(file, "size: %ldb - %ldb\n", fileStat1->st_size, fileStat2->st_size);
+
+                    printf("create time: %s - %s", ctime(&fileStat1->st_ctime), ctime(&fileStat2->st_ctime));
+                    fprintf(file, "create time: %s - %s", ctime(&fileStat1->st_ctime), ctime(&fileStat2->st_ctime));                    
+                    
                     curEl = curEl->next;
                 }
             }
-        }
-        else if ((curDir->d_type == DT_DIR) && (strcmp(curDir->d_name, ".") != 0) && (strcmp(curDir->d_name, "..") != 0))
-        {
-            //Get path of next folder
-            char *dirNewPath = getFilepath(dirSource, curDir);
-            findFile(dirNewPath, dirSearch, pFile);
+        } else if ((curFile->d_type == DT_DIR) && (strcmp(curFile->d_name, ".") != 0) && (strcmp(curFile->d_name, "..") != 0)) {
+            
+            char *fullName1 = getFullPath(dir1, curFile);
+            findSame(fullName1, dir2, file);
         }
 
     }
 
     free(fileStat1);
     free(fileStat2);
-    if(closedir(dirStream) == -1)
-        fprintf(stderr,"Can not close the dir\n");
-}
+    if(closedir(dirStream) == -1) {
+        fprintf(stderr,"error! could not close the dirName\n");
+        return 1;
+    }    
+    return 0;
 
-// adding elemant to list
-void Add(struct List **head, struct FILERES *data) {
+
+}
+void add(struct List **head, struct FileStuff *data) {
     struct List *tmp = (struct List*) malloc(sizeof(struct List));
-    tmp->file = data;
+    tmp->fileInfo = data;
     tmp->next = (*head);
     (*head) = tmp;
 }
 
 
-struct List *findEqualFile(char *fileDir, struct dirent *mainFile, char *dirToFind) {
-    DIR *dirStream;
-    if ((dirStream = opendir(dirToFind)) == NULL)
-    {
-        fprintf(stderr,"Can not open the dir\n");
+char* getFullPath(char* dirname, struct dirent *dir) {
+    char *filepath = calloc(strlen(dirname) + strlen(dir->d_name)+2, 1);
+    strcpy(filepath, dirname);
+    strcat(filepath,"/");
+    strcat(filepath,dir->d_name);
+    
+    return filepath;
+}
+
+struct List *getSameFiles(char *dirName, struct dirent *fileToFind, char *dirToSearch) {
+    DIR *dirStream = opendir(dirToSearch);
+    if (dirStream == NULL) {
+        
+        fprintf(stderr,"error! could not open the dirName\n");
         return NULL;
     }
 
-    struct List *array = NULL;
-
-    //file handler
-    struct dirent *curDir;
+    struct dirent *curFile;
+    struct List *resList = NULL;
     
-    //read each file from dir
-    while ((curDir = readdir(dirStream)) != NULL) {
-        //if is file -> cmp two files, else open new dir
-        if  (curDir->d_type != DT_DIR)
-        {
-            char *file2NewPath = getFilepath(dirToFind, curDir);
-            char *file1Path = getFilepath(fileDir, mainFile);
-            int cmpRes = CompareFiles(file1Path, file2NewPath);
-            //Files equals
-            if (cmpRes == 1)
-            {
-                struct FILERES *answer = malloc(sizeof(struct FILERES));
-                answer->info = curDir;
-                answer->fileDir = file2NewPath;
 
-                Add(&array, answer);
+    while ((curFile = readdir(dirStream)) != NULL) {
+
+        if  ((curFile->d_type != DT_DIR) && (curFile->d_ino != fileToFind->d_ino))  {
+            char *curFileName = getFullPath(dirToSearch, curFile);
+            char *mainFileName = getFullPath(dirName, fileToFind);
+            
+
+            if (fileCompare(mainFileName, curFileName)) {
+                struct FileStuff *equalFile = malloc(sizeof(struct FileStuff));
+                equalFile->info = curFile;
+                equalFile->fullName = curFileName;
+
+                add(&resList, equalFile);
             }
 
-        }
-        else if ((curDir->d_type == DT_DIR) && (strcmp(curDir->d_name, ".") != 0) && (strcmp(curDir->d_name, "..") != 0))
-        {
-            //Get path of next folder
-            char *dirNewPath = getFilepath(dirToFind, curDir);
-            struct List *findRes = findEqualFile(fileDir, mainFile, dirNewPath);
-            if (findRes != NULL)
-            {
+        } else if ((curFile->d_type == DT_DIR) && (strcmp(curFile->d_name, ".") != 0) && (strcmp(curFile->d_name, "..") != 0)) {
+ 
+            char *fullName1 = getFullPath(dirToSearch, curFile);
+            struct List *findRes = getSameFiles(dirName, fileToFind, fullName1);
+            if (findRes != NULL) {
                 struct List *curEl = findRes;
-                while (curEl != NULL)
-                {
-                    Add(&array, curEl->file);
+                while (curEl != NULL) {
+                    add(&resList, curEl->fileInfo);
                     curEl = curEl->next;
                 }
             }
@@ -187,59 +184,50 @@ struct List *findEqualFile(char *fileDir, struct dirent *mainFile, char *dirToFi
 
     }
 
-    if(closedir(dirStream) == -1)
-        fprintf(stderr,"Can not close the dir\n");
-
-    return array;
+    if(closedir(dirStream) == -1) {
+        fprintf(stderr,"error! could not close the dirName\n");
+    }
+    return resList;
 }
 
-//get path of new folder
-char* getFilepath (char* dirname, struct dirent *dir)
-{
-    char *filepath = calloc(strlen(dirname) + strlen(dir->d_name)+2, 1);
-    strcpy(filepath, dirname);
-    strcat(filepath,"/");
-    strcat(filepath,dir->d_name);
-       
-    return filepath;
-}
 
-int CompareFiles(const char *fn1, const char *fn2) {
-    int fFirstFile = open(fn1, O_RDONLY);
-    if (fFirstFile < 0)
-    {
-        fprintf(stderr,"Could not open the file\n");
-        return NULL;
+
+int fileCompare(const char *fn1, const char *fn2) {
+    int file1open = open(fn1, O_RDONLY);
+    if (file1open < 0) {
+
+        fprintf(stderr,"error! could not open the file\n");
+        return 0;
     }
 
-    int fSecFile = open(fn2, O_RDONLY);
-    if (fSecFile < 0)
-    {
-        fprintf(stderr,"Could not open the file\n");
-        return NULL;
+    int file2open = open(fn2, O_RDONLY);
+    if (file2open < 0) {
+
+        fprintf(stderr,"error! could not open the file\n");
+        return 0;
     }
 
-    FILE *fp1 = fdopen(fFirstFile, "r");
-    FILE *fp2 = fdopen(fSecFile, "r");
+    FILE *file1 = fdopen(file1open, "r");
+    FILE *file2 = fdopen(file2open, "r");
 
-    int   ch1, ch2, c, r;
+    int ch1, ch2;
 
-    c = r = 0;
+    int res;
     while(1) {
-        ch1 = fgetc(fp1);
-        ch2 = fgetc(fp2);
-        if(ch1 != ch2)
+        ch1 = fgetc(file1);
+        ch2 = fgetc(file2);
+
+        if(ch1 != ch2) {
+            res = 0;
             break;
-        else if((ch1 == '\n') && (ch2 == '\n')) {
-            ++r;
-            c = 0;
-        } else if((ch1 == EOF) && (ch2 == EOF))
-            return 1;
+        } else if((ch1 == EOF) && (ch2 == EOF)) {
+            res = 1;
+            break;
+        }
 
-        ++c;
     }
-    fclose(fp1);
-    fclose(fp2);
+    fclose(file1);
+    fclose(file2);
 
-    return 0;
+    return res;
 }
