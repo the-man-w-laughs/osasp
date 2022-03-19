@@ -16,6 +16,10 @@ struct List {
     struct List *next;
 };
 
+struct List *head = NULL;
+
+
+
 // main function, fings same files
 int findSame(char *dir1, char *dir2, FILE *file);
 
@@ -32,6 +36,7 @@ struct List *getSameFiles(char *dirName, struct dirent *fileToFind, char *dirToS
 // adds data to List
 void add(struct List **head, struct FileStuff *data);
 
+int checkList(struct List *head, struct dirent * data);
 
 int main(int argc, char *argv[]) {
 
@@ -89,14 +94,13 @@ int findSame(char *dir1, char *dir2, FILE *file){
     while ((curFile = readdir(dirStream)) != NULL) {
         
 //if the file is not dir
-        if  (curFile->d_type != DT_DIR) {
+        if  ((curFile->d_type != DT_DIR) && (checkList(head,curFile))) {
         
 // adds to List files the same to currFile     
             struct List *equalFiles = getSameFiles(dir1, curFile, dir2);
- 
+ 	    
 // if at list one file is equeal to curFile           
             if (equalFiles != NULL) {
-            
 //initializing iterator            
                 char *fullName1 = getFullPath(dir1, curFile);
 
@@ -187,6 +191,7 @@ struct List *getSameFiles(char *dirName, struct dirent *fileToFind, char *dirToS
                 equalFile->fullName = curFileName;
 
                 add(&resList, equalFile);
+                add(&head,equalFile);
             }
 
         } else if ((curFile->d_type == DT_DIR) && (strcmp(curFile->d_name, ".") != 0) && (strcmp(curFile->d_name, "..") != 0)) {
@@ -197,6 +202,7 @@ struct List *getSameFiles(char *dirName, struct dirent *fileToFind, char *dirToS
                 struct List *curEl = findRes;
                 while (curEl != NULL) {
                     add(&resList, curEl->fileInfo);
+                    add(&head,curEl->fileInfo);
                     curEl = curEl->next;
                 }
             }
@@ -251,4 +257,13 @@ int fileCompare(const char *fn1, const char *fn2) {
     fclose(file2);
 
     return res;
+}
+
+int checkList(struct List *head, struct dirent * data){
+	struct List *curEl = head;
+	while (curEl != NULL) {
+	if (curEl->fileInfo->info->d_ino == data->d_ino) return 0;
+	curEl = curEl->next;
+	}
+	return 1;
 }
