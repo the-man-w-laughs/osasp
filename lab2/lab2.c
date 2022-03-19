@@ -78,7 +78,7 @@ int findSame(char *dir1, char *dir2, FILE *file){
     DIR *dirStream = opendir(dir1);
     if (dirStream == NULL) {
         
-        fprintf(stderr,"error! could not open the dirName\n");
+        fprintf(stderr,"error! could not open the dir %s\n",dir1);
         return 1;
     }
 
@@ -138,7 +138,7 @@ int findSame(char *dir1, char *dir2, FILE *file){
     free(fileStat1);
     free(fileStat2);
     if(closedir(dirStream) == -1) {
-        fprintf(stderr,"error! could not close the dirName\n");
+        fprintf(stderr,"error! could not close the dir %s\n",dir1);
         return 1;
     }    
     return 0;
@@ -166,7 +166,7 @@ struct List *getSameFiles(char *dirName, struct dirent *fileToFind, char *dirToS
     DIR *dirStream = opendir(dirToSearch);
     if (dirStream == NULL) {
         
-        fprintf(stderr,"error! could not open the dirName\n");
+        fprintf(stderr,"error! could not open the dir %s\n",dirToSearch);
         return NULL;
     }
 
@@ -206,7 +206,7 @@ struct List *getSameFiles(char *dirName, struct dirent *fileToFind, char *dirToS
     }
 
     if(closedir(dirStream) == -1) {
-        fprintf(stderr,"error! could not close the dirName\n");
+        fprintf(stderr,"error! could not close the dir %s\n",dirToSearch);
     }
     return resList;
 }
@@ -217,14 +217,14 @@ int fileCompare(const char *fn1, const char *fn2) {
     int file1open = open(fn1, O_RDONLY);
     if (file1open < 0) {
 
-        fprintf(stderr,"error! could not open the file\n");
+        fprintf(stderr,"error! could not open the file %s\n",fn1);
         return 0;
     }
 
     int file2open = open(fn2, O_RDONLY);
     if (file2open < 0) {
 
-        fprintf(stderr,"error! could not open the file\n");
+        fprintf(stderr,"error! could not open the file %s\n",fn2);
         return 0;
     }
 
