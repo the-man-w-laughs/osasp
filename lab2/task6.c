@@ -4,10 +4,10 @@
 
 void PrintDir(char *dir)
 {
-    DIR *dirStream;
-    if ((dirStream = opendir(dir)) == NULL)
+    DIR *dirStream = opendir(dir);
+    if (dirStream == NULL)
     {
-        fprintf(stderr,"Can not open the dir\n");
+        perror("Can not open the dir: ");
         return;
     }
     struct dirent *curDir;
@@ -15,15 +15,20 @@ void PrintDir(char *dir)
         printf("%s\n", curDir->d_name);
 
     if(closedir(dirStream) == -1)
-        fprintf(stderr,"Can not close the dir\n");
+        perror("Can not close the dir: ");
 }
 
 int main(int argc, char *argv[]) {
     char curDir[256];
     getcwd(curDir, 256);
-    PrintDir(curDir);
+    
+    printf("\n\n\n  ***************\n");
+    printf("  Current directory: \n");
+    PrintDir(curDir);  
 
-    printf("\n\n\n     **********\n");
+    
+    printf("\n\n\n  ***************\n");
+    printf("  Root directory: \n");
     PrintDir("/");
     return 0;
 }
