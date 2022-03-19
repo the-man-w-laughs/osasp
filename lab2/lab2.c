@@ -107,7 +107,7 @@ int findSame(char *dir1, char *dir2, FILE *file){
                     stat(fullName1, fileStat1);
                     stat(curEl->fileInfo->fullName, fileStat2);
 
-                    printf("\npath: %s - %s\n", fullName1, curEl->fileInfo->fullName);
+                    printf("\npath: %s - %s\n", realpath(fullName1,NULL), realpath(curEl->fileInfo->fullName,NULL));
                     fprintf(file, "\npath: %s- %s\n", fullName1, curEl->fileInfo->fullName);
 
                     printf("inode number: %ld - %ld\n", fileStat1->st_ino, fileStat2->st_ino);
