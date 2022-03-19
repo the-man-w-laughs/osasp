@@ -4,7 +4,6 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <stdlib.h>
-
 #include <time.h>
 
 struct FileStuff {
@@ -17,16 +16,27 @@ struct List {
     struct List *next;
 };
 
+// main function, fings same files
 int findSame(char *dir1, char *dir2, FILE *file);
+
+// returns dirname+dir->d_name
 char* getFullPath(char* dirname, struct dirent *dir);
+
+// compares files with names fn1 and fn2
 int fileCompare(const char *fn1, const char *fn2);
+
+// used in conjuction with findSame
+// finds file, same to fileToFind
 struct List *getSameFiles(char *dirName, struct dirent *fileToFind, char *dirToSearch);
+
+// adds data to List
 void add(struct List **head, struct FileStuff *data);
 
 
 int main(int argc, char *argv[]) {
+
+// errors check
     if (argc != 4) {
-        
         fprintf(stderr,"error! wrong parameters:\n1- first dirName \n2 - second dirName \n3 - result file\n");
         return 1;
     }
@@ -74,17 +84,26 @@ int findSame(char *dir1, char *dir2, FILE *file){
 
     
     struct dirent *curFile;
-    
+
+// reading all files in directory   
     while ((curFile = readdir(dirStream)) != NULL) {
         
+//if the file is not dir
         if  (curFile->d_type != DT_DIR) {
+        
+// adds to List files the same to currFile     
             struct List *equalFiles = getSameFiles(dir1, curFile, dir2);
-
+ 
+// if at list one file is equeal to curFile           
             if (equalFiles != NULL) {
+            
+//initializing iterator            
                 char *fullName1 = getFullPath(dir1, curFile);
 
                 struct List *curEl = equalFiles;
                 while (curEl != NULL) {
+
+// getting files info                
                     stat(fullName1, fileStat1);
                     stat(curEl->fileInfo->fullName, fileStat2);
 
@@ -106,9 +125,11 @@ int findSame(char *dir1, char *dir2, FILE *file){
                     curEl = curEl->next;
                 }
             }
+            // if the file is directory
         } else if ((curFile->d_type == DT_DIR) && (strcmp(curFile->d_name, ".") != 0) && (strcmp(curFile->d_name, "..") != 0)) {
-            
+            // getting full path to current directory   
             char *fullName1 = getFullPath(dir1, curFile);
+            // recursion descent to current directory
             findSame(fullName1, dir2, file);
         }
 
