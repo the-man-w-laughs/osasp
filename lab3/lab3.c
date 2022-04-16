@@ -71,8 +71,11 @@ int scanDirectory(char* dir)
         if (curFile->d_type != DT_DIR) {
             if (MaxChildNumber <= ClildNumber) // not enough place to create new process
             {
+            	int wait_err;
                 // wait for somebody
-                wait(NULL);
+                wait_err = wait(NULL);
+                
+                if (wait_err == -1) perror("Wait ended with error!");
                 // dec ctr
                 ClildNumber--;
             }
@@ -168,4 +171,3 @@ int scanFile(const char* fileName, int* byteCount, int* wordCount)
 
     return 0;
 }
-
